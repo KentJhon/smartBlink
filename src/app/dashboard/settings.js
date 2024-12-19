@@ -1,22 +1,30 @@
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
-import React, { useState, useEffect } from 'react';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { auth, db } from '../../../firebase'; // Import Firebase config and Firestore
-import { doc, updateDoc, getDoc } from 'firebase/firestore'; // Firestore functions
-import { Picker } from '@react-native-picker/picker';
-import { useRouter } from 'expo-router';
-import axios from 'axios'; // Make sure you have axios installed for HTTP requests
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+} from "react-native";
+import React, { useState, useEffect } from "react";
+import Ionicons from "@expo/vector-icons/Ionicons";
+import { auth, db } from "../../../firebase"; // Import Firebase config and Firestore
+import { doc, updateDoc, getDoc } from "firebase/firestore"; // Firestore functions
+import { Picker } from "@react-native-picker/picker";
+import { useRouter } from "expo-router";
+import axios from "axios"; // Make sure you have axios installed for HTTP requests
 
 const Settings = () => {
-  const [timer, setTimer] = useState(''); // Timer input state
-  const [unit, setUnit] = useState('minutes'); // Timer unit state (e.g., minutes or seconds)
+  const [timer, setTimer] = useState(""); // Timer input state
+  const [unit, setUnit] = useState("seconds"); // Timer unit state (e.g., minutes or seconds)
   const router = useRouter();
-  const esp8266IP = 'http://172.20.10.4'; // IP of your ESP8266
+  const [esp8266IP, setIP] = useState("");
+  // const esp8266IP = "http://172.20.10.4"; // IP of your ESP8266
 
   useEffect(() => {
     const fetchTimerData = async () => {
       if (auth.currentUser) {
-        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
         const userDoc = await getDoc(userDocRef);
         if (userDoc.exists()) {
           const userData = userDoc.data();
@@ -44,7 +52,7 @@ const Settings = () => {
   const handleSaveTimer = async () => {
     if (auth.currentUser) {
       try {
-        const userDocRef = doc(db, 'users', auth.currentUser.uid);
+        const userDocRef = doc(db, "users", auth.currentUser.uid);
         await updateDoc(userDocRef, {
           timer: timer,
           unit: unit,
@@ -52,7 +60,7 @@ const Settings = () => {
 
         alert(`Timer set for ${timer} ${unit}`);
       } catch (error) {
-        alert('Error saving timer: ' + error.message);
+        alert("Error saving timer: " + error.message);
       }
     }
   };
@@ -62,16 +70,19 @@ const Settings = () => {
       const response = await axios.get(`${esp8266IP}/${signalType}/toggle`);
       console.log(`${signalType} signal toggled: ${response.data}`);
     } catch (error) {
-      console.error('Error toggling signal:', error);
+      console.error("Error toggling signal:", error);
     }
   };
 
   const setTimerOnESP8266 = async () => {
+    console.log(`${esp8266IP} `);
     try {
-      const response = await axios.get(`${esp8266IP}/set_timer?duration=${timer}`);
-      console.log('Timer set on ESP8266:', response.data);
+      const response = await axios.get(
+        `${esp8266IP}/set_timer?duration=${timer}`
+      );
+      console.log("Timer set on ESP8266:", response.data);
     } catch (error) {
-      console.error('Error setting timer on ESP8266:', error);
+      console.error("Error setting timer on ESP8266:", error);
     }
   };
 
@@ -80,17 +91,17 @@ const Settings = () => {
       {/* Account Section */}
       <View style={styles.sectionContainer}>
         <View style={styles.buttonContainer}>
-          <TouchableOpacity 
-            style={styles.buttons} 
-            onPress={() => toggleSignal('left')} // Toggle left signal
+          <TouchableOpacity
+            style={styles.buttons}
+            onPress={() => toggleSignal("left")} // Toggle left signal
           >
-            <Text style={styles.buttonText} >Left</Text>
+            <Text style={styles.buttonText}>Left</Text>
           </TouchableOpacity>
-          <TouchableOpacity 
-            style={styles.buttons} 
-            onPress={() => toggleSignal('right')} // Toggle right signal
+          <TouchableOpacity
+            style={styles.buttons}
+            onPress={() => toggleSignal("right")} // Toggle right signal
           >
-            <Text style={styles.buttonText} >Right</Text>
+            <Text style={styles.buttonText}>Right</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -98,38 +109,50 @@ const Settings = () => {
       {/* General Section */}
       <View style={styles.sectionContainer}>
         <Text style={styles.sectionTitle}>General</Text>
-        <TouchableOpacity style={styles.settingItem} onPress={() => handlePress('Timer')}>
-          <Ionicons name="timer-outline" size={25} color="black" />
-          <Text style={styles.settingText}>Timer</Text>
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={() => handlePress("Timer")}
+        >
+          <Ionicons name="globe-outline" size={25} color="black" />
+          <Text style={styles.settingText}>IP Address</Text>
         </TouchableOpacity>
-        
+
         {/* Timer Section with Input and Dropdown */}
         <View style={styles.timerContainer}>
           <TextInput
             style={styles.input}
             value={timer}
-            onChangeText={setTimer}
-            placeholder="Enter time"
+            onChangeText={setIP}
+            placeholder="http://"
             keyboardType="numeric"
           />
-          <Picker
+          {/* <Picker
             selectedValue={unit}
             style={styles.picker}
             onValueChange={(itemValue) => setUnit(itemValue)}
           >
             <Picker.Item label="Minutes" value="minutes" />
             <Picker.Item label="Seconds" value="seconds" />
-          </Picker>
+          </Picker> */}
         </View>
-        <TouchableOpacity style={styles.saveButton} onPress={handleSaveTimerAndSetOnESP}>
-          <Text style={styles.saveButtonText}>Save Timer</Text>
+        <TouchableOpacity
+          style={styles.saveButton}
+          onPress={handleSaveTimerAndSetOnESP}
+        >
+          <Text style={styles.saveButtonText}>Save IP Address</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.settingItem} onPress={() => handlePress('My Subscription')}>
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={() => handlePress("My Subscription")}
+        >
           <Ionicons name="card-outline" size={25} color="black" />
           <Text style={styles.settingText}>My Subscription</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.settingItem} onPress={() => handlePress('Help and Support')}>
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={() => handlePress("Help and Support")}
+        >
           <Ionicons name="help-circle-outline" size={25} color="black" />
           <Text style={styles.settingText}>Help and Support</Text>
         </TouchableOpacity>
@@ -141,7 +164,7 @@ const Settings = () => {
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    backgroundColor: '#FFF',
+    backgroundColor: "#FFF",
     padding: 20,
   },
   buttonContainer: {
@@ -150,67 +173,67 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   buttons: {
-    backgroundColor: '#0c3e27',
+    backgroundColor: "#0c3e27",
     padding: 20,
     borderRadius: 5,
   },
   buttonText: {
-    color: 'white'
+    color: "white",
   },
   sectionContainer: {
     marginBottom: 30,
-    backgroundColor: '#F4F4F4',
+    backgroundColor: "#F4F4F4",
     padding: 20,
     borderRadius: 10,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#242426',
+    fontWeight: "bold",
+    color: "#242426",
     marginBottom: 10,
   },
   settingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#E0E0E0',
+    borderBottomColor: "#E0E0E0",
   },
   settingText: {
     fontSize: 16,
-    color: '#242426',
+    color: "#242426",
     marginLeft: 10,
   },
   timerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    width: "100%",
+    alignItems: "center",
+    justifyContent: "flex-start",
     marginTop: 10,
   },
   input: {
     fontSize: 16,
-    color: '#242426',
-    backgroundColor: '#FFF',
-    borderColor: '#CCC',
+    color: "#242426",
+    backgroundColor: "#FFF",
+    borderColor: "#CCC",
     borderWidth: 1,
     borderRadius: 5,
     padding: 10,
-    width: '60%',
+    width: "100%",
   },
   picker: {
     height: 50,
-    width: '30%',
+    width: "30%",
   },
   saveButton: {
-    backgroundColor: '#0c3e27',
+    backgroundColor: "#0c3e27",
     padding: 10,
     borderRadius: 5,
     marginTop: 20,
   },
   saveButtonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
 });
 
