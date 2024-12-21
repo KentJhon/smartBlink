@@ -10,8 +10,6 @@ import React, { useState, useEffect } from "react";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { doc, updateDoc, getDoc, setDoc } from "firebase/firestore";
 import { db, auth } from "../../../../firebase"; // Update this path to match your Firebase configuration file.
-import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { Picker } from "@react-native-picker/picker";
 import axios from "axios"; // Make sure you have axios installed for HTTP requests
 
 const Home = () => {
@@ -20,6 +18,7 @@ const Home = () => {
   const esp8266IP = "http://172.20.10.4"; // IP of your ESP8266
   const [status, setStatus] = useState("Not Connected"); // Local state for status
   const userId = auth.currentUser?.uid; // Use current user's ID dynamically
+  const [location, setLocation] = useState("Set your Location"); // Default location state
 
   // Function to fetch initial status from the database
   const fetchStatus = async () => {
@@ -39,6 +38,26 @@ const Home = () => {
 
   useEffect(() => {
     if (userId) fetchStatus();
+  }, [userId]);
+
+  // Fetch location from the database
+  useEffect(() => {
+    const fetchLocation = async () => {
+      if (userId) {
+        try {
+          const userDocRef = doc(db, "users", userId); // Reference to the user's document
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setLocation(userData.address || "Set your Location"); // Set address or default
+          }
+        } catch (error) {
+          console.error("Error fetching location:", error);
+        }
+      }
+    };
+
+    fetchLocation(); // Fetch location when the component mounts
   }, [userId]);
 
   const handlePress = async () => {
@@ -67,7 +86,6 @@ const Home = () => {
     }
   };
 
-  // Timer functionality
   const setTimerOnESP8266 = async () => {
     try {
       const response = await axios.get(
@@ -96,7 +114,6 @@ const Home = () => {
   };
 
   const handleSaveTimerAndSetOnESP = () => {
-    // Call both functions
     handleSaveTimer();
     setTimerOnESP8266();
   };
@@ -119,6 +136,15 @@ const Home = () => {
     fetchTimerData(); // Fetch saved timer when the component mounts
   }, []);
 
+  const toggleSignal = async (signalType) => {
+    try {
+      const response = await axios.get(`${esp8266IP}/${signalType}/toggle`);
+      console.log(`${signalType} signal toggled: ${response.data}`);
+    } catch (error) {
+      console.error("Error toggling signal:", error);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Background Section */}
@@ -128,23 +154,15 @@ const Home = () => {
       >
         {/* Status Section */}
         <View style={styles.sectionContainer}>
-          {/* Timer Section with Input and Dropdown */}
+          {/* Timer Section with Input */}
           <View style={styles.timerContainer}>
             <TextInput
               style={styles.input}
               value={timer}
               onChangeText={setTimer}
-              placeholder="Enter time"
+              placeholder="Enter time in seconds"
               keyboardType="numeric"
             />
-            <Picker
-              selectedValue={unit}
-              style={styles.picker}
-              onValueChange={(itemValue) => setUnit(itemValue)}
-            >
-              <Picker.Item label="Minutes" value="minutes" />
-              <Picker.Item label="Seconds" value="seconds" />
-            </Picker>
           </View>
           <TouchableOpacity
             style={styles.saveButton}
@@ -152,17 +170,27 @@ const Home = () => {
           >
             <Text style={styles.saveButtonText}>Save Timer</Text>
           </TouchableOpacity>
-          {/* <Text style={styles.status}>{status}</Text> */}
-        </View>
 
-        {/* Button Section */}
-        <View style={styles.buttonContainer}>
-          <View style={styles.roundButton} onPress={handlePress}>
-            <MaterialCommunityIcons
-              name="horse-variant"
-              size={120}
-              color="black"
-            />
+          {/* Left and Right Buttons */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={styles.buttons}
+              onPress={() => toggleSignal("left")}
+            >
+              <Text style={styles.buttonText}>Left</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.buttons}
+              onPress={() => toggleSignal("hazard")}
+            >
+              <Text style={styles.buttonText}>Hazard</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.buttons}
+              onPress={() => toggleSignal("right")}
+            >
+              <Text style={styles.buttonText}>Right</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </ImageBackground>
@@ -170,7 +198,7 @@ const Home = () => {
       {/* Location Section */}
       <View style={styles.locationContainer}>
         <Text style={styles.locationText}>Location</Text>
-        <Text style={styles.location}>Cagayan de Oro City</Text>
+        <Text style={styles.location}>{location}</Text>
       </View>
 
       {/* Premium Section */}
@@ -185,7 +213,6 @@ const Home = () => {
           />
           <Text style={styles.premium}>Real Time Device Information</Text>
         </View>
-
         <View style={styles.premiumHeader}>
           <Ionicons
             name="location-sharp"
@@ -231,12 +258,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 5,
     padding: 10,
-    width: "60%",
+    width: "100%",
   },
-  picker: {
-    height: 50,
-    width: "30%",
-  },
+
   saveButton: {
     backgroundColor: "#0c3e27",
     padding: 10,
@@ -248,33 +272,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     textAlign: "center",
   },
-  status: {
-    fontSize: 18,
-    fontWeight: "bold",
-    paddingBottom: 30,
-    color: "#000",
-  },
   buttonContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    justifyContent: "center",
+    marginTop: 20,
   },
-  roundButton: {
-    position: "absolute",
-    top: "50%",
-    left: "50%",
-    transform: [{ translateX: -90 }, { translateY: -15 }],
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: "#FFF",
-    alignItems: "center",
-    justifyContent: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
-    zIndex: 999,
+  buttons: {
+    backgroundColor: "#0c3e27",
+    padding: 20,
+    borderRadius: 5,
+  },
+  buttonText: {
+    color: "white",
   },
   locationContainer: {
     flex: 1,
